@@ -1,52 +1,192 @@
-"use client";
+﻿"use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-type BackendStatus = "checking" | "online" | "offline";
+type SourceType = "file" | "cloud";
+type ConnectionState = "idle" | "connecting" | "success" | "error";
 
-export default function Home() {
-  const [status, setStatus] = useState<BackendStatus>("checking");
-  const [serviceName, setServiceName] = useState<string>("");
+export default function ConnectPage() {
+  const router = useRouter();
 
-  useEffect(() => {
-    fetch(`${API_URL}/health`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Backend responded with an error");
-        return res.json();
-      })
-      .then((data) => {
-        setServiceName(data.service);
-        setStatus("online");
-      })
-      .catch(() => setStatus("offline"));
-  }, []);
+  const [sourceType, setSourceType] = useState<SourceType>("file");
+  const [isDragging, setIsDragging] = useState(false);
+  const [state, setState] = useState<ConnectionState>("idle");
+  const [message, setMessage] = useState("");
 
-  const statusColor =
-    status === "online"
-      ? "bg-green-500"
-      : status === "offline"
-        ? "bg-red-500"
-        : "bg-yellow-500";
+  const [dbType, setDbType] = useState<"mysql" | "postgresql">("mysql");
+  const [host, setHost] = useState("");
+  const [port, setPort] = useState("3306");
+  const [database, setDatabase] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+
+  async function handleConnect() {
+    setState("connecting");
+    setMessage("");
+
+    try {
+      const res = await fetch(`${API_URL}/connections/test`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          db_type: dbType,
+          host,
+          port: Number(port),
+          username,
+          password,
+          database,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setState("success");
+        setMessage(data.message);
+        setTimeout(() => router.push("/dashboard"), 1200);
+      } else {
+        setState("error");
+        setMessage(data.message);
+      }
+    } catch {
+      setState("error");
+      setMessage("Could not reach the backend. Is the server running?");
+    }
+  }
+
+  function handleDrop(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      setMessage(`"${file.name}" selected — file upload isn't wired up yet (Phase 2 continued).`);
+    }
+  }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-6 px-6">
-      <h1 className="text-3xl font-semibold">DBReport AI</h1>
-      <p className="max-w-md text-center text-gray-500">
-        Phase 1 checkpoint: this page confirms the Next.js frontend can reach
-        the FastAPI backend before any real features are built.
+    <main className="min-h-screen bg-[#0b0d10] text-white flex flex-col items-center justify-center px-6 py-16">
+      <div className="mb-3 flex items-center gap-2">
+        <span className="h-6 w-6 rounded bg-gradient-to-br from-violet-400 to-fuchsia-500" />
+        <span className="text-lg font-semibold tracking-tight">AskBase</span>
+      </div>
+
+      <h1 className="text-3xl md:text-4xl font-bold text-center mb-2">
+        Make Your Data a Report
+      </h1>
+      <p className="text-neutral-400 text-center mb-10 max-w-md">
+        Connect a database or drop a file — AskBase reads the schema and
+        gets you ready to ask questions in plain English.
       </p>
 
-      <div className="flex items-center gap-3 rounded-lg border border-gray-300 px-5 py-3">
-        <span className={`h-2.5 w-2.5 rounded-full ${statusColor}`} />
-        <span className="text-sm">
-          {status === "checking" && "Checking backend connection..."}
-          {status === "online" && `Connected to ${serviceName} backend`}
-          {status === "offline" &&
-            "Backend not reachable — is uvicorn running?"}
-        </span>
+      <div className="flex gap-2 mb-6 rounded-full bg-white/5 p-1 border border-white/10">
+        <button
+          onClick={() => setSourceType("file")}
+          className={`px-5 py-2 rounded-full text-sm font-medium transition ${
+            sourceType === "file" ? "bg-violet-500 text-white" : "text-neutral-400"
+          }`}
+        >
+          Local File
+        </button>
+        <button
+          onClick={() => setSourceType("cloud")}
+          className={`px-5 py-2 rounded-full text-sm font-medium transition ${
+            sourceType === "cloud" ? "bg-violet-500 text-white" : "text-neutral-400"
+          }`}
+        >
+          Cloud Database
+        </button>
       </div>
+
+      {sourceType === "file" ? (
+        <div
+          onDragOver={(e) => {
+            e.preventDefault();
+            setIsDragging(true);
+          }}
+          onDragLeave={() => setIsDragging(false)}
+          onDrop={handleDrop}
+          className={`w-full max-w-2xl rounded-3xl border-2 border-dashed px-8 py-14 text-center transition ${
+            isDragging
+              ? "border-violet-400 bg-violet-500/10"
+              : "border-white/15 bg-white/5"
+          }`}
+        >
+          <p className="text-lg font-medium mb-1">Drop your data file here</p>
+          <p className="text-sm text-neutral-500">
+            CSV, XLSX, JSON, SQL dump — or click to browse
+          </p>
+        </div>
+      ) : (
+        <div className="w-full max-w-md rounded-3xl bg-white/5 border border-white/10 p-8">
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <select
+              value={dbType}
+              onChange={(e) => setDbType(e.target.value as "mysql" | "postgresql")}
+              className="col-span-2 bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-sm"
+            >
+              <option value="mysql">MySQL</option>
+              <option value="postgresql">PostgreSQL</option>
+            </select>
+
+            <input
+              placeholder="Host"
+              value={host}
+              onChange={(e) => setHost(e.target.value)}
+              className="bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-sm placeholder:text-neutral-500"
+            />
+            <input
+              placeholder="Port"
+              value={port}
+              onChange={(e) => setPort(e.target.value)}
+              className="bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-sm placeholder:text-neutral-500"
+            />
+            <input
+              placeholder="Database name"
+              value={database}
+              onChange={(e) => setDatabase(e.target.value)}
+              className="col-span-2 bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-sm placeholder:text-neutral-500"
+            />
+            <input
+              placeholder="Username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-sm placeholder:text-neutral-500"
+            />
+            <input
+              placeholder="Password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-sm placeholder:text-neutral-500"
+            />
+          </div>
+
+          <button
+            onClick={handleConnect}
+            disabled={state === "connecting"}
+            className="w-full rounded-lg bg-violet-500 hover:bg-violet-400 transition py-2.5 text-sm font-semibold disabled:opacity-50"
+          >
+            {state === "connecting" ? "Connecting..." : "Connect"}
+          </button>
+        </div>
+      )}
+
+      {message && (
+        <p
+          className={`mt-5 text-sm ${
+            state === "success"
+              ? "text-green-400"
+              : state === "error"
+              ? "text-red-400"
+              : "text-neutral-400"
+          }`}
+        >
+          {message}
+        </p>
+      )}
     </main>
   );
 }
