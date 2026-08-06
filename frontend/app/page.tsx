@@ -1,12 +1,20 @@
 ﻿"use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 type SourceType = "file" | "cloud";
 type ConnectionState = "idle" | "connecting" | "success" | "error";
+
+type SavedConnection = {
+  id: number;
+  name: string;
+  db_type: string;
+  host: string;
+  database: string;
+};
 
 export default function ConnectPage() {
   const router = useRouter();
@@ -22,6 +30,19 @@ export default function ConnectPage() {
   const [database, setDatabase] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+
+  const [connectionName, setConnectionName] = useState("");
+  const [savedConnections, setSavedConnections] = useState<SavedConnection[]>(
+    [],
+  );
+
+  // Load the list of previously saved connections when the page opens
+  useEffect(() => {
+    fetch(`${API_URL}/saved-connections/`)
+      .then((res) => res.json())
+      .then(setSavedConnections)
+      .catch(() => setSavedConnections([]));
+  }, []);
 
   async function handleConnect() {
     setState("connecting");
@@ -46,6 +67,27 @@ export default function ConnectPage() {
       if (data.success) {
         setState("success");
         setMessage(data.message);
+
+        // If the user gave this connection a name, save it (encrypted)
+        // before redirecting.
+        if (connectionName.trim()) {
+          await fetch(
+            `${API_URL}/saved-connections/?name=${encodeURIComponent(connectionName)}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                db_type: dbType,
+                host,
+                port: Number(port),
+                username,
+                password,
+                database,
+              }),
+            },
+          );
+        }
+
         setTimeout(() => router.push("/dashboard"), 1200);
       } else {
         setState("error");
@@ -57,12 +99,27 @@ export default function ConnectPage() {
     }
   }
 
+  function handleUseSaved(conn: SavedConnection) {
+    setSourceType("cloud");
+    setDbType(conn.db_type as "mysql" | "postgresql");
+    setHost(conn.host);
+    setDatabase(conn.database);
+    // Password is never sent back from the server — the user re-enters
+    // it here. A later phase can add a "reconnect by id" endpoint that
+    // decrypts server-side and skips this step entirely.
+    setMessage(
+      `Loaded "${conn.name}" — please re-enter the password to reconnect.`,
+    );
+  }
+
   function handleDrop(e: React.DragEvent<HTMLDivElement>) {
     e.preventDefault();
     setIsDragging(false);
     const file = e.dataTransfer.files[0];
     if (file) {
-      setMessage(`"${file.name}" selected — file upload isn't wired up yet (Phase 2 continued).`);
+      setMessage(
+        `"${file.name}" selected — file upload isn't wired up yet (Phase 2 continued).`,
+      );
     }
   }
 
@@ -76,16 +133,40 @@ export default function ConnectPage() {
       <h1 className="text-3xl md:text-4xl font-bold text-center mb-2">
         Make Your Data a Report
       </h1>
-      <p className="text-neutral-400 text-center mb-10 max-w-md">
-        Connect a database or drop a file — AskBase reads the schema and
-        gets you ready to ask questions in plain English.
+      <p className="text-neutral-400 text-center mb-6 max-w-md">
+        Connect a database or drop a file — AskBase reads the schema and gets
+        you ready to ask questions in plain English.
       </p>
+
+      {savedConnections.length > 0 && (
+        <div className="w-full max-w-md mb-6">
+          <p className="text-xs text-neutral-500 mb-2 uppercase tracking-wide">
+            Saved connections
+          </p>
+          <div className="flex flex-col gap-2">
+            {savedConnections.map((conn) => (
+              <button
+                key={conn.id}
+                onClick={() => handleUseSaved(conn)}
+                className="flex items-center justify-between rounded-lg bg-white/5 border border-white/10 px-4 py-2 text-sm hover:bg-white/10 transition text-left"
+              >
+                <span>{conn.name}</span>
+                <span className="text-neutral-500 text-xs">
+                  {conn.db_type} · {conn.database}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="flex gap-2 mb-6 rounded-full bg-white/5 p-1 border border-white/10">
         <button
           onClick={() => setSourceType("file")}
           className={`px-5 py-2 rounded-full text-sm font-medium transition ${
-            sourceType === "file" ? "bg-violet-500 text-white" : "text-neutral-400"
+            sourceType === "file"
+              ? "bg-violet-500 text-white"
+              : "text-neutral-400"
           }`}
         >
           Local File
@@ -93,7 +174,9 @@ export default function ConnectPage() {
         <button
           onClick={() => setSourceType("cloud")}
           className={`px-5 py-2 rounded-full text-sm font-medium transition ${
-            sourceType === "cloud" ? "bg-violet-500 text-white" : "text-neutral-400"
+            sourceType === "cloud"
+              ? "bg-violet-500 text-white"
+              : "text-neutral-400"
           }`}
         >
           Cloud Database
@@ -121,10 +204,12 @@ export default function ConnectPage() {
         </div>
       ) : (
         <div className="w-full max-w-md rounded-3xl bg-white/5 border border-white/10 p-8">
-          <div className="grid grid-cols-2 gap-3 mb-4">
+          <div className="grid grid-cols-2 gap-3 mb-3">
             <select
               value={dbType}
-              onChange={(e) => setDbType(e.target.value as "mysql" | "postgresql")}
+              onChange={(e) =>
+                setDbType(e.target.value as "mysql" | "postgresql")
+              }
               className="col-span-2 bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-sm"
             >
               <option value="mysql">MySQL</option>
@@ -164,6 +249,13 @@ export default function ConnectPage() {
             />
           </div>
 
+          <input
+            placeholder="Name this connection to save it (optional)"
+            value={connectionName}
+            onChange={(e) => setConnectionName(e.target.value)}
+            className="w-full bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-sm placeholder:text-neutral-500 mb-4"
+          />
+
           <button
             onClick={handleConnect}
             disabled={state === "connecting"}
@@ -180,8 +272,8 @@ export default function ConnectPage() {
             state === "success"
               ? "text-green-400"
               : state === "error"
-              ? "text-red-400"
-              : "text-neutral-400"
+                ? "text-red-400"
+                : "text-neutral-400"
           }`}
         >
           {message}
