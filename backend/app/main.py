@@ -7,6 +7,7 @@ Run it with:  uvicorn app.main:app --reload --port 8000
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.api import saved_connections
 
 from app.core.config import settings
 from app.api import connections
@@ -26,6 +27,7 @@ app.add_middleware(
 )
 
 app.include_router(connections.router)
+app.include_router(saved_connections.router)
 
 
 @app.get("/health")
