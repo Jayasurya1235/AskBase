@@ -68,6 +68,28 @@ export default function ConnectPage() {
         setState("success");
         setMessage(data.message);
 
+        // Fetch the schema now, so the dashboard can display it right
+        // after redirect — sessionStorage is fine here since it's just
+        // UI display data, cleared when the tab closes.
+        try {
+          const schemaRes = await fetch(`${API_URL}/connections/schema`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              db_type: dbType,
+              host,
+              port: Number(port),
+              username,
+              password,
+              database,
+            }),
+          });
+          const schemaData = await schemaRes.json();
+          sessionStorage.setItem("askbase_schema", JSON.stringify(schemaData));
+        } catch {
+          // Schema fetch failing shouldn't block the redirect.
+        }
+
         // If the user gave this connection a name, save it (encrypted)
         // before redirecting.
         if (connectionName.trim()) {
