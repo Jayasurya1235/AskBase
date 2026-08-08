@@ -12,6 +12,7 @@ from app.api import saved_connections
 from app.core.config import settings
 from app.api import connections
 from app.api import query
+from app.api import export
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -30,6 +31,7 @@ app.add_middleware(
 app.include_router(connections.router)
 app.include_router(saved_connections.router)
 app.include_router(query.router)
+app.include_router(export.router)
 
 
 @app.get("/health")
