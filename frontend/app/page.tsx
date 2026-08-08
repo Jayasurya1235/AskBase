@@ -89,7 +89,17 @@ export default function ConnectPage() {
         } catch {
           // Schema fetch failing shouldn't block the redirect.
         }
-
+        sessionStorage.setItem(
+          "askbase_connection",
+          JSON.stringify({
+            db_type: dbType,
+            host,
+            port: Number(port),
+            username,
+            password,
+            database,
+          }),
+        );
         // If the user gave this connection a name, save it (encrypted)
         // before redirecting.
         if (connectionName.trim()) {

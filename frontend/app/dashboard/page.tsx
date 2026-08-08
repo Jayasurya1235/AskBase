@@ -60,6 +60,12 @@ export default function Dashboard() {
         <p className="text-xs text-neutral-500 uppercase tracking-wide mb-3">
           {schema.database} · {schema.tables.length} tables
         </p>
+        <a
+          href="/chat"
+          className="block mb-4 text-center bg-violet-500 hover:bg-violet-400 transition rounded-lg py-2 text-sm font-semibold"
+        >
+          Ask a question →
+        </a>
         <div className="flex flex-col gap-1">
           {schema.tables.map((table) => (
             <button
