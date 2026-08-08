@@ -1,6 +1,15 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -13,6 +22,119 @@ type Message = {
   rowCount?: number;
   error?: boolean;
 };
+
+function isChartable(columns?: string[], rows?: Record<string, unknown>[]) {
+  if (!columns || !rows || columns.length !== 2 || rows.length === 0)
+    return false;
+  // A chartable result: one text-like column (category) and one
+  // numeric column (value) — e.g. artist name + total sales.
+  const [colA, colB] = columns;
+  const sample = rows[0];
+  const aIsNumber =
+    typeof sample[colA] === "number" || !isNaN(Number(sample[colA]));
+  const bIsNumber =
+    typeof sample[colB] === "number" || !isNaN(Number(sample[colB]));
+  return aIsNumber !== bIsNumber; // exactly one of the two is numeric
+}
+
+function MessageResult({
+  columns,
+  rows,
+}: {
+  columns: string[];
+  rows: Record<string, unknown>[];
+}) {
+  const [view, setView] = useState<"table" | "chart">("table");
+  const chartable = isChartable(columns, rows);
+
+  const [textCol, numCol] = (() => {
+    if (!chartable) return [columns[0], columns[1]];
+    const sample = rows[0];
+    const aIsNumber =
+      typeof sample[columns[0]] === "number" ||
+      !isNaN(Number(sample[columns[0]]));
+    return aIsNumber ? [columns[1], columns[0]] : [columns[0], columns[1]];
+  })();
+
+  const chartData = rows.slice(0, 20).map((row) => ({
+    name: String(row[textCol]),
+    value: Number(row[numCol]),
+  }));
+
+  return (
+    <div className="mt-3">
+      {chartable && (
+        <div className="flex gap-1 mb-2">
+          <button
+            onClick={() => setView("table")}
+            className={`text-xs px-2.5 py-1 rounded-md transition ${
+              view === "table"
+                ? "bg-violet-500 text-white"
+                : "bg-white/5 text-neutral-400"
+            }`}
+          >
+            Table
+          </button>
+          <button
+            onClick={() => setView("chart")}
+            className={`text-xs px-2.5 py-1 rounded-md transition ${
+              view === "chart"
+                ? "bg-violet-500 text-white"
+                : "bg-white/5 text-neutral-400"
+            }`}
+          >
+            Chart
+          </button>
+        </div>
+      )}
+
+      {view === "table" || !chartable ? (
+        <div className="overflow-x-auto">
+          <table className="text-xs w-full border-collapse">
+            <thead>
+              <tr className="text-left text-neutral-500 border-b border-white/10">
+                {columns.map((col) => (
+                  <th key={col} className="pb-1.5 pr-4">
+                    {col}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.slice(0, 20).map((row, ri) => (
+                <tr key={ri} className="border-b border-white/5">
+                  {columns.map((col) => (
+                    <td key={col} className="py-1.5 pr-4 text-neutral-300">
+                      {String(row[col])}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div style={{ width: "100%", height: 240 }}>
+          <ResponsiveContainer>
+            <BarChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
+              <XAxis dataKey="name" tick={{ fill: "#a3a3a3", fontSize: 11 }} />
+              <YAxis tick={{ fill: "#a3a3a3", fontSize: 11 }} />
+              <Tooltip
+                contentStyle={{
+                  background: "#14171c",
+                  border: "1px solid #ffffff20",
+                }}
+                labelStyle={{ color: "#fff" }}
+              />
+              <Bar dataKey="value" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -112,8 +234,8 @@ export default function ChatPage() {
       <div className="flex-1 overflow-y-auto px-6 py-6 max-w-3xl w-full mx-auto">
         {messages.length === 0 && (
           <p className="text-neutral-500 text-sm">
-            Ask something like "top 5 best selling artists" or "how many
-            customers do we have".
+            Ask something like &quot;top 5 best selling artists&quot; or
+            &quot;how many customers do we have&quot;.
           </p>
         )}
 
@@ -141,33 +263,7 @@ export default function ChatPage() {
                 )}
 
                 {msg.columns && msg.rows && msg.rows.length > 0 && (
-                  <div className="mt-3 overflow-x-auto">
-                    <table className="text-xs w-full border-collapse">
-                      <thead>
-                        <tr className="text-left text-neutral-500 border-b border-white/10">
-                          {msg.columns.map((col) => (
-                            <th key={col} className="pb-1.5 pr-4">
-                              {col}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {msg.rows.slice(0, 20).map((row, ri) => (
-                          <tr key={ri} className="border-b border-white/5">
-                            {msg.columns!.map((col) => (
-                              <td
-                                key={col}
-                                className="py-1.5 pr-4 text-neutral-300"
-                              >
-                                {String(row[col])}
-                              </td>
-                            ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                  <MessageResult columns={msg.columns} rows={msg.rows} />
                 )}
               </div>
             </div>
