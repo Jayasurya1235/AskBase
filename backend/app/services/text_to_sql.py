@@ -52,7 +52,10 @@ def generate_sql(question: str, schema: SchemaResponse) -> str:
         "exist in the schema provided."
     )
 
-    user_prompt = f"Schema:\n{schema_text}\n\nQuestion: {question}\n\nSQL:"
+    user_prompt = (
+        f"Database name: {schema.database}\n\n"
+        f"Schema:\n{schema_text}\n\nQuestion: {question}\n\nSQL:"
+    )
 
     response = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
