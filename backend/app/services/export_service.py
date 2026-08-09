@@ -66,7 +66,7 @@ def generate_pdf(data: ExportRequest) -> io.BytesIO:
 
     elements.append(Paragraph("AskBase Report", styles["Title"]))
     elements.append(Spacer(1, 12))
-    elements.append(Paragraph(f"Question: {data.question}", styles["Normal"]))
+    elements.append(Paragraph(f"Topic: {data.question}", styles["Normal"]))
     elements.append(Spacer(1, 16))
 
     # Build table data: header row + all data rows, as plain strings
@@ -88,6 +88,16 @@ def generate_pdf(data: ExportRequest) -> io.BytesIO:
         )
     )
     elements.append(table)
+    if data.narrative:
+        elements.append(Spacer(1, 20))
+        elements.append(Paragraph("Analysis", styles["Heading2"]))
+        elements.append(Spacer(1, 8))
+        # Split into lines so bullet-style narratives render as
+        # separate paragraphs instead of one dense block.
+        for line in data.narrative.split("\n"):
+            if line.strip():
+                elements.append(Paragraph(line.strip(), styles["Normal"]))
+                elements.append(Spacer(1, 4))
 
     doc.build(elements)
     buffer.seek(0)

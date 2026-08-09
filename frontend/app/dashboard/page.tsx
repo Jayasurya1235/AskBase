@@ -66,6 +66,12 @@ export default function Dashboard() {
         >
           Ask a question →
         </a>
+        <a
+          href="/report"
+          className="block mb-4 text-center bg-white/5 border border-white/10 hover:bg-white/10 transition rounded-lg py-2 text-sm font-semibold"
+        >
+          Generate Report →
+        </a>
         <div className="flex flex-col gap-1">
           {schema.tables.map((table) => (
             <button

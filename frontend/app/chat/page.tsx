@@ -26,21 +26,46 @@ type Message = {
 function isChartable(columns?: string[], rows?: Record<string, unknown>[]) {
   if (!columns || !rows || columns.length !== 2 || rows.length === 0)
     return false;
-  // A chartable result: one text-like column (category) and one
-  // numeric column (value) — e.g. artist name + total sales.
   const [colA, colB] = columns;
   const sample = rows[0];
   const aIsNumber =
     typeof sample[colA] === "number" || !isNaN(Number(sample[colA]));
   const bIsNumber =
     typeof sample[colB] === "number" || !isNaN(Number(sample[colB]));
-  return aIsNumber !== bIsNumber; // exactly one of the two is numeric
+  return aIsNumber !== bIsNumber;
+}
+
+async function downloadExport(
+  format: "excel" | "pdf",
+  question: string,
+  columns: string[],
+  rows: Record<string, unknown>[],
+) {
+  const res = await fetch(`${API_URL}/export/${format}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ question, columns, rows }),
+  });
+
+  if (!res.ok) return;
+
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `askbase_export.${format === "excel" ? "xlsx" : "pdf"}`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
 }
 
 function MessageResult({
+  question,
   columns,
   rows,
 }: {
+  question: string;
   columns: string[];
   rows: Record<string, unknown>[];
 }) {
@@ -63,30 +88,44 @@ function MessageResult({
 
   return (
     <div className="mt-3">
-      {chartable && (
-        <div className="flex gap-1 mb-2">
-          <button
-            onClick={() => setView("table")}
-            className={`text-xs px-2.5 py-1 rounded-md transition ${
-              view === "table"
-                ? "bg-violet-500 text-white"
-                : "bg-white/5 text-neutral-400"
-            }`}
-          >
-            Table
-          </button>
-          <button
-            onClick={() => setView("chart")}
-            className={`text-xs px-2.5 py-1 rounded-md transition ${
-              view === "chart"
-                ? "bg-violet-500 text-white"
-                : "bg-white/5 text-neutral-400"
-            }`}
-          >
-            Chart
-          </button>
-        </div>
-      )}
+      <div className="flex gap-1 mb-2 flex-wrap">
+        {chartable && (
+          <>
+            <button
+              onClick={() => setView("table")}
+              className={`text-xs px-2.5 py-1 rounded-md transition ${
+                view === "table"
+                  ? "bg-violet-500 text-white"
+                  : "bg-white/5 text-neutral-400"
+              }`}
+            >
+              Table
+            </button>
+            <button
+              onClick={() => setView("chart")}
+              className={`text-xs px-2.5 py-1 rounded-md transition ${
+                view === "chart"
+                  ? "bg-violet-500 text-white"
+                  : "bg-white/5 text-neutral-400"
+              }`}
+            >
+              Chart
+            </button>
+          </>
+        )}
+        <button
+          onClick={() => downloadExport("excel", question, columns, rows)}
+          className="text-xs px-2.5 py-1 rounded-md bg-white/5 text-neutral-400 hover:bg-white/10 transition"
+        >
+          ⬇ Excel
+        </button>
+        <button
+          onClick={() => downloadExport("pdf", question, columns, rows)}
+          className="text-xs px-2.5 py-1 rounded-md bg-white/5 text-neutral-400 hover:bg-white/10 transition"
+        >
+          ⬇ PDF
+        </button>
+      </div>
 
       {view === "table" || !chartable ? (
         <div className="overflow-x-auto">
@@ -263,7 +302,15 @@ export default function ChatPage() {
                 )}
 
                 {msg.columns && msg.rows && msg.rows.length > 0 && (
-                  <MessageResult columns={msg.columns} rows={msg.rows} />
+                  <MessageResult
+                    question={
+                      messages[i - 1]?.role === "user"
+                        ? messages[i - 1].content
+                        : msg.content
+                    }
+                    columns={msg.columns}
+                    rows={msg.rows}
+                  />
                 )}
               </div>
             </div>

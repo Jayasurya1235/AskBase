@@ -13,6 +13,7 @@ from app.core.config import settings
 from app.api import connections
 from app.api import query
 from app.api import export
+from app.api import report
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -32,6 +33,7 @@ app.include_router(connections.router)
 app.include_router(saved_connections.router)
 app.include_router(query.router)
 app.include_router(export.router)
+app.include_router(report.router)
 
 
 @app.get("/health")
