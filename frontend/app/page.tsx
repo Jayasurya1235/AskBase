@@ -144,14 +144,63 @@ export default function ConnectPage() {
     );
   }
 
-  function handleDrop(e: React.DragEvent<HTMLDivElement>) {
+  async function handleDrop(e: React.DragEvent<HTMLDivElement>) {
     e.preventDefault();
     setIsDragging(false);
     const file = e.dataTransfer.files[0];
-    if (file) {
-      setMessage(
-        `"${file.name}" selected — file upload isn't wired up yet (Phase 2 continued).`,
-      );
+    if (!file) return;
+
+    await handleFileUpload(file);
+  }
+
+  async function handleFileUpload(file: File) {
+    setState("connecting");
+    setMessage(`Uploading "${file.name}"...`);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const uploadRes = await fetch(`${API_URL}/upload/file`, {
+        method: "POST",
+        body: formData,
+      });
+
+      const uploadData = await uploadRes.json();
+
+      if (!uploadRes.ok) {
+        setState("error");
+        setMessage(uploadData.detail || "Upload failed.");
+        return;
+      }
+
+      // The upload response IS a connection object (db_type: "sqlite"),
+      // so we can feed it straight into schema fetching — same as any
+      // other successful connection.
+      const connection = {
+        db_type: uploadData.db_type,
+        host: uploadData.host,
+        port: uploadData.port,
+        username: uploadData.username,
+        password: uploadData.password,
+        database: uploadData.database,
+      };
+
+      const schemaRes = await fetch(`${API_URL}/connections/schema`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(connection),
+      });
+      const schemaData = await schemaRes.json();
+      sessionStorage.setItem("askbase_schema", JSON.stringify(schemaData));
+      sessionStorage.setItem("askbase_connection", JSON.stringify(connection));
+
+      setState("success");
+      setMessage(uploadData.message);
+      setTimeout(() => router.push("/dashboard"), 1000);
+    } catch {
+      setState("error");
+      setMessage("Could not reach the backend. Is the server running?");
     }
   }
 
