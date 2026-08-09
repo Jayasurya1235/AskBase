@@ -20,7 +20,8 @@ def inspect_schema(request: DatabaseConnectionRequest) -> SchemaResponse:
     every foreign key relationship between tables.
     """
     connection_url = build_connection_url(request)
-    engine = create_engine(connection_url, connect_args={"connect_timeout": 5})
+    connect_args = {} if request.db_type == "sqlite" else {"connect_timeout": 5}
+    engine = create_engine(connection_url, connect_args=connect_args)
     inspector = inspect(engine)
 
     tables = []

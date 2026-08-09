@@ -24,7 +24,8 @@ def execute_query(sql: str, connection: DatabaseConnectionRequest):
     (columns, rows, row_count).
     """
     connection_url = build_connection_url(connection)
-    engine = create_engine(connection_url, connect_args={"connect_timeout": 5})
+    connect_args = {} if connection.db_type == "sqlite" else {"connect_timeout": 5}
+    engine = create_engine(connection_url, connect_args=connect_args)
 
     with engine.connect() as conn:
         result = conn.execute(text(sql))

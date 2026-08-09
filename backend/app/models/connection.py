@@ -9,13 +9,16 @@ from pydantic import BaseModel
 from typing import Literal
 
 
+from typing import Optional
+
+
 class DatabaseConnectionRequest(BaseModel):
-    db_type: Literal["mysql", "postgresql"]
-    host: str
-    port: int
-    username: str
-    password: str
-    database: str
+    db_type: Literal["mysql", "postgresql", "sqlite"]
+    host: str = ""
+    port: int = 0
+    username: str = ""
+    password: str = ""
+    database: str  # for sqlite, this is the file path instead of a db name
 
 
 class DatabaseConnectionResponse(BaseModel):

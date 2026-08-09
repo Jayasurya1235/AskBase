@@ -12,3 +12,4 @@ frontend/.env.local
 .DS_Store
 *.log
 backend/askbase.db
+backend/uploaded_dbs/

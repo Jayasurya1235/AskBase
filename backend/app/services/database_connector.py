@@ -16,6 +16,12 @@ from app.models.connection import DatabaseConnectionRequest, DatabaseConnectionR
 
 
 def build_connection_url(request: DatabaseConnectionRequest) -> str:
+    if request.db_type == "sqlite":
+        # SQLite has no host/user/password — database is a file path.
+        return f"sqlite:///{request.database}"
+
+    # URL-encode username and password so special characters like @, #, :
+    # don't get misread as part of the URL's structure.
     safe_username = quote_plus(request.username)
     safe_password = quote_plus(request.password)
 
@@ -36,7 +42,9 @@ def build_connection_url(request: DatabaseConnectionRequest) -> str:
 def test_connection(request: DatabaseConnectionRequest) -> DatabaseConnectionResponse:
     try:
         connection_url = build_connection_url(request)
-        engine = create_engine(connection_url, connect_args={"connect_timeout": 5})
+        # SQLite is a local file — no network timeout concept applies.
+        connect_args = {} if request.db_type == "sqlite" else {"connect_timeout": 5}
+        engine = create_engine(connection_url, connect_args=connect_args)
 
         with engine.connect() as connection:
             connection.execute(text("SELECT 1"))
