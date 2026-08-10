@@ -42,8 +42,16 @@ def build_connection_url(request: DatabaseConnectionRequest) -> str:
 def test_connection(request: DatabaseConnectionRequest) -> DatabaseConnectionResponse:
     try:
         connection_url = build_connection_url(request)
-        # SQLite is a local file — no network timeout concept applies.
-        connect_args = {} if request.db_type == "sqlite" else {"connect_timeout": 5}
+
+        if request.db_type == "sqlite":
+            connect_args = {}
+        elif request.db_type == "postgresql":
+            # Cloud Postgres providers (Supabase, RDS, Neon, etc.) typically
+            # require an encrypted connection.
+            connect_args = {"connect_timeout": 10, "sslmode": "require"}
+        else:
+            connect_args = {"connect_timeout": 10}
+
         engine = create_engine(connection_url, connect_args=connect_args)
 
         with engine.connect() as connection:

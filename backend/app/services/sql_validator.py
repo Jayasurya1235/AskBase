@@ -16,13 +16,22 @@ class UnsafeSQLError(Exception):
     pass
 
 
+_DIALECT_MAP = {
+    "postgresql": "postgres",
+    "mysql": "mysql",
+    "sqlite": "sqlite",
+}
+
+
 def validate_sql(sql: str, dialect: str = "mysql") -> str:
     """
     Parses the SQL and raises UnsafeSQLError if it's anything other
     than a single SELECT statement. Returns the cleaned SQL if valid.
     """
+    sqlglot_dialect = _DIALECT_MAP.get(dialect, dialect)
+
     try:
-        parsed_statements = sqlglot.parse(sql, read=dialect)
+        parsed_statements = sqlglot.parse(sql, read=sqlglot_dialect)
     except Exception as e:
         raise UnsafeSQLError(f"Could not parse SQL: {e}")
 
@@ -50,4 +59,4 @@ def validate_sql(sql: str, dialect: str = "mysql") -> str:
         if isinstance(node[0], forbidden_types):
             raise UnsafeSQLError("Query contains a disallowed operation.")
 
-    return statement.sql(dialect=dialect)
+    return statement.sql(dialect=sqlglot_dialect)
