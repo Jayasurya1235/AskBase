@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { useEffect, useState } from "react";
+import ThemeToggle from "../components/ThemeToggle";
 
 type ColumnInfo = {
   name: string;
@@ -43,8 +44,14 @@ export default function Dashboard() {
 
   if (!schema) {
     return (
-      <main className="min-h-screen bg-[#0b0d10] text-white flex items-center justify-center px-6">
-        <p className="text-neutral-400">
+      <main
+        className="min-h-screen flex items-center justify-center px-6"
+        style={{
+          backgroundColor: "var(--bg-app)",
+          color: "var(--text-primary)",
+        }}
+      >
+        <p style={{ color: "var(--text-secondary)" }}>
           No schema data found — connect a database first from the home page.
         </p>
       </main>
@@ -54,24 +61,42 @@ export default function Dashboard() {
   const activeTable = schema.tables.find((t) => t.name === selectedTable);
 
   return (
-    <main className="min-h-screen bg-[#0b0d10] text-white flex">
-      {/* Sidebar: table list */}
-      <aside className="w-64 border-r border-white/10 p-5">
-        <p className="text-xs text-neutral-500 uppercase tracking-wide mb-3">
-          {schema.database} · {schema.tables.length} tables
-        </p>
+    <main
+      className="min-h-screen flex"
+      style={{ backgroundColor: "var(--bg-app)", color: "var(--text-primary)" }}
+    >
+      <aside
+        className="w-64 border-r p-5"
+        style={{ borderColor: "var(--border-color)" }}
+      >
+        <div className="flex items-center justify-between mb-3">
+          <p
+            className="text-xs uppercase tracking-wide"
+            style={{ color: "var(--text-secondary)" }}
+          >
+            {schema.database} · {schema.tables.length} tables
+          </p>
+          <ThemeToggle />
+        </div>
+
         <a
           href="/chat"
-          className="block mb-4 text-center bg-violet-500 hover:bg-violet-400 transition rounded-lg py-2 text-sm font-semibold"
+          className="block mb-2 text-center bg-violet-500 hover:bg-violet-400 transition rounded-lg py-2 text-sm font-semibold text-white"
         >
           Ask a question →
         </a>
+
         <a
           href="/report"
-          className="block mb-4 text-center bg-white/5 border border-white/10 hover:bg-white/10 transition rounded-lg py-2 text-sm font-semibold"
+          className="block mb-4 text-center border hover:opacity-80 transition rounded-lg py-2 text-sm font-semibold"
+          style={{
+            backgroundColor: "var(--bg-surface)",
+            borderColor: "var(--border-color)",
+          }}
         >
           Generate Report →
         </a>
+
         <div className="flex flex-col gap-1">
           {schema.tables.map((table) => (
             <button
@@ -80,8 +105,13 @@ export default function Dashboard() {
               className={`text-left px-3 py-2 rounded-lg text-sm transition ${
                 selectedTable === table.name
                   ? "bg-violet-500 text-white"
-                  : "text-neutral-400 hover:bg-white/5"
+                  : "hover:opacity-80"
               }`}
+              style={
+                selectedTable !== table.name
+                  ? { color: "var(--text-secondary)" }
+                  : undefined
+              }
             >
               {table.name}
             </button>
@@ -89,19 +119,27 @@ export default function Dashboard() {
         </div>
       </aside>
 
-      {/* Main: selected table's columns */}
       <section className="flex-1 p-8">
         {activeTable ? (
           <>
             <h1 className="text-2xl font-semibold mb-1">{activeTable.name}</h1>
-            <p className="text-neutral-500 text-sm mb-6">
+            <p
+              className="text-sm mb-6"
+              style={{ color: "var(--text-secondary)" }}
+            >
               {activeTable.columns.length} columns ·{" "}
               {activeTable.foreign_keys.length} relationships
             </p>
 
             <table className="w-full text-sm border-collapse">
               <thead>
-                <tr className="text-left text-neutral-500 border-b border-white/10">
+                <tr
+                  className="text-left border-b"
+                  style={{
+                    borderColor: "var(--border-color)",
+                    color: "var(--text-secondary)",
+                  }}
+                >
                   <th className="pb-2 pr-4">Column</th>
                   <th className="pb-2 pr-4">Type</th>
                   <th className="pb-2 pr-4">Nullable</th>
@@ -110,15 +148,27 @@ export default function Dashboard() {
               </thead>
               <tbody>
                 {activeTable.columns.map((col) => (
-                  <tr key={col.name} className="border-b border-white/5">
+                  <tr
+                    key={col.name}
+                    className="border-b"
+                    style={{ borderColor: "var(--border-color)" }}
+                  >
                     <td className="py-2 pr-4 font-medium">{col.name}</td>
-                    <td className="py-2 pr-4 text-neutral-400">{col.type}</td>
-                    <td className="py-2 pr-4 text-neutral-400">
+                    <td
+                      className="py-2 pr-4"
+                      style={{ color: "var(--text-secondary)" }}
+                    >
+                      {col.type}
+                    </td>
+                    <td
+                      className="py-2 pr-4"
+                      style={{ color: "var(--text-secondary)" }}
+                    >
                       {col.nullable ? "Yes" : "No"}
                     </td>
                     <td className="py-2">
                       {col.primary_key && (
-                        <span className="text-xs bg-violet-500/20 text-violet-300 px-2 py-0.5 rounded">
+                        <span className="text-xs bg-violet-500/20 text-violet-400 px-2 py-0.5 rounded">
                           PRIMARY
                         </span>
                       )}
@@ -130,14 +180,23 @@ export default function Dashboard() {
 
             {activeTable.foreign_keys.length > 0 && (
               <div className="mt-8">
-                <p className="text-xs text-neutral-500 uppercase tracking-wide mb-2">
+                <p
+                  className="text-xs uppercase tracking-wide mb-2"
+                  style={{ color: "var(--text-secondary)" }}
+                >
                   Relationships
                 </p>
                 <div className="flex flex-col gap-1">
                   {activeTable.foreign_keys.map((fk, i) => (
-                    <p key={i} className="text-sm text-neutral-400">
-                      <span className="text-white">{fk.column}</span> →{" "}
-                      {fk.references_table}.{fk.references_column}
+                    <p
+                      key={i}
+                      className="text-sm"
+                      style={{ color: "var(--text-secondary)" }}
+                    >
+                      <span style={{ color: "var(--text-primary)" }}>
+                        {fk.column}
+                      </span>{" "}
+                      → {fk.references_table}.{fk.references_column}
                     </p>
                   ))}
                 </div>
@@ -145,7 +204,7 @@ export default function Dashboard() {
             )}
           </>
         ) : (
-          <p className="text-neutral-500">
+          <p style={{ color: "var(--text-secondary)" }}>
             Select a table to view its columns.
           </p>
         )}
