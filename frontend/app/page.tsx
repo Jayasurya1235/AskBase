@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import ThemeToggle from "./components/ThemeToggle";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -36,7 +37,6 @@ export default function ConnectPage() {
     [],
   );
 
-  // Load the list of previously saved connections when the page opens
   useEffect(() => {
     fetch(`${API_URL}/saved-connections/`)
       .then((res) => res.json())
@@ -68,9 +68,6 @@ export default function ConnectPage() {
         setState("success");
         setMessage(data.message);
 
-        // Fetch the schema now, so the dashboard can display it right
-        // after redirect — sessionStorage is fine here since it's just
-        // UI display data, cleared when the tab closes.
         try {
           const schemaRes = await fetch(`${API_URL}/connections/schema`, {
             method: "POST",
@@ -89,6 +86,7 @@ export default function ConnectPage() {
         } catch {
           // Schema fetch failing shouldn't block the redirect.
         }
+
         sessionStorage.setItem(
           "askbase_connection",
           JSON.stringify({
@@ -100,8 +98,7 @@ export default function ConnectPage() {
             database,
           }),
         );
-        // If the user gave this connection a name, save it (encrypted)
-        // before redirecting.
+
         if (connectionName.trim()) {
           await fetch(
             `${API_URL}/saved-connections/?name=${encodeURIComponent(connectionName)}`,
@@ -136,9 +133,6 @@ export default function ConnectPage() {
     setDbType(conn.db_type as "mysql" | "postgresql");
     setHost(conn.host);
     setDatabase(conn.database);
-    // Password is never sent back from the server — the user re-enters
-    // it here. A later phase can add a "reconnect by id" endpoint that
-    // decrypts server-side and skips this step entirely.
     setMessage(
       `Loaded "${conn.name}" — please re-enter the password to reconnect.`,
     );
@@ -149,7 +143,6 @@ export default function ConnectPage() {
     setIsDragging(false);
     const file = e.dataTransfer.files[0];
     if (!file) return;
-
     await handleFileUpload(file);
   }
 
@@ -174,9 +167,6 @@ export default function ConnectPage() {
         return;
       }
 
-      // The upload response IS a connection object (db_type: "sqlite"),
-      // so we can feed it straight into schema fetching — same as any
-      // other successful connection.
       const connection = {
         db_type: uploadData.db_type,
         host: uploadData.host,
@@ -204,8 +194,21 @@ export default function ConnectPage() {
     }
   }
 
+  const inputStyle = {
+    backgroundColor: "var(--bg-app)",
+    borderColor: "var(--border-color)",
+    color: "var(--text-primary)",
+  };
+
   return (
-    <main className="min-h-screen bg-[#0b0d10] text-white flex flex-col items-center justify-center px-6 py-16">
+    <main
+      className="min-h-screen flex flex-col items-center justify-center px-6 py-16 relative"
+      style={{ backgroundColor: "var(--bg-app)", color: "var(--text-primary)" }}
+    >
+      <div className="absolute top-6 right-6">
+        <ThemeToggle />
+      </div>
+
       <div className="mb-3 flex items-center gap-2">
         <span className="h-6 w-6 rounded bg-gradient-to-br from-violet-400 to-fuchsia-500" />
         <span className="text-lg font-semibold tracking-tight">AskBase</span>
@@ -214,14 +217,20 @@ export default function ConnectPage() {
       <h1 className="text-3xl md:text-4xl font-bold text-center mb-2">
         Make Your Data a Report
       </h1>
-      <p className="text-neutral-400 text-center mb-6 max-w-md">
+      <p
+        className="text-center mb-6 max-w-md"
+        style={{ color: "var(--text-secondary)" }}
+      >
         Connect a database or drop a file — AskBase reads the schema and gets
         you ready to ask questions in plain English.
       </p>
 
       {savedConnections.length > 0 && (
         <div className="w-full max-w-md mb-6">
-          <p className="text-xs text-neutral-500 mb-2 uppercase tracking-wide">
+          <p
+            className="text-xs mb-2 uppercase tracking-wide"
+            style={{ color: "var(--text-secondary)" }}
+          >
             Saved connections
           </p>
           <div className="flex flex-col gap-2">
@@ -229,10 +238,17 @@ export default function ConnectPage() {
               <button
                 key={conn.id}
                 onClick={() => handleUseSaved(conn)}
-                className="flex items-center justify-between rounded-lg bg-white/5 border border-white/10 px-4 py-2 text-sm hover:bg-white/10 transition text-left"
+                className="flex items-center justify-between rounded-lg border px-4 py-2 text-sm transition text-left hover:opacity-80"
+                style={{
+                  backgroundColor: "var(--bg-surface)",
+                  borderColor: "var(--border-color)",
+                }}
               >
                 <span>{conn.name}</span>
-                <span className="text-neutral-500 text-xs">
+                <span
+                  className="text-xs"
+                  style={{ color: "var(--text-secondary)" }}
+                >
                   {conn.db_type} · {conn.database}
                 </span>
               </button>
@@ -241,24 +257,36 @@ export default function ConnectPage() {
         </div>
       )}
 
-      <div className="flex gap-2 mb-6 rounded-full bg-white/5 p-1 border border-white/10">
+      <div
+        className="flex gap-2 mb-6 rounded-full p-1 border"
+        style={{
+          backgroundColor: "var(--bg-surface)",
+          borderColor: "var(--border-color)",
+        }}
+      >
         <button
           onClick={() => setSourceType("file")}
           className={`px-5 py-2 rounded-full text-sm font-medium transition ${
-            sourceType === "file"
-              ? "bg-violet-500 text-white"
-              : "text-neutral-400"
+            sourceType === "file" ? "bg-violet-500 text-white" : ""
           }`}
+          style={
+            sourceType !== "file"
+              ? { color: "var(--text-secondary)" }
+              : undefined
+          }
         >
           Local File
         </button>
         <button
           onClick={() => setSourceType("cloud")}
           className={`px-5 py-2 rounded-full text-sm font-medium transition ${
-            sourceType === "cloud"
-              ? "bg-violet-500 text-white"
-              : "text-neutral-400"
+            sourceType === "cloud" ? "bg-violet-500 text-white" : ""
           }`}
+          style={
+            sourceType !== "cloud"
+              ? { color: "var(--text-secondary)" }
+              : undefined
+          }
         >
           Cloud Database
         </button>
@@ -272,26 +300,35 @@ export default function ConnectPage() {
           }}
           onDragLeave={() => setIsDragging(false)}
           onDrop={handleDrop}
-          className={`w-full max-w-2xl rounded-3xl border-2 border-dashed px-8 py-14 text-center transition ${
-            isDragging
-              ? "border-violet-400 bg-violet-500/10"
-              : "border-white/15 bg-white/5"
-          }`}
+          className="w-full max-w-2xl rounded-3xl border-2 border-dashed px-8 py-14 text-center transition"
+          style={{
+            borderColor: isDragging ? "#a78bfa" : "var(--border-color)",
+            backgroundColor: isDragging
+              ? "rgba(139,92,246,0.1)"
+              : "var(--bg-surface)",
+          }}
         >
           <p className="text-lg font-medium mb-1">Drop your data file here</p>
-          <p className="text-sm text-neutral-500">
+          <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
             CSV, XLSX, JSON, SQL dump — or click to browse
           </p>
         </div>
       ) : (
-        <div className="w-full max-w-md rounded-3xl bg-white/5 border border-white/10 p-8">
+        <div
+          className="w-full max-w-md rounded-3xl border p-8"
+          style={{
+            backgroundColor: "var(--bg-surface)",
+            borderColor: "var(--border-color)",
+          }}
+        >
           <div className="grid grid-cols-2 gap-3 mb-3">
             <select
               value={dbType}
               onChange={(e) =>
                 setDbType(e.target.value as "mysql" | "postgresql")
               }
-              className="col-span-2 bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-sm"
+              className="col-span-2 border rounded-lg px-3 py-2 text-sm"
+              style={inputStyle}
             >
               <option value="mysql">MySQL</option>
               <option value="postgresql">PostgreSQL</option>
@@ -301,32 +338,37 @@ export default function ConnectPage() {
               placeholder="Host"
               value={host}
               onChange={(e) => setHost(e.target.value)}
-              className="bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-sm placeholder:text-neutral-500"
+              className="border rounded-lg px-3 py-2 text-sm"
+              style={inputStyle}
             />
             <input
               placeholder="Port"
               value={port}
               onChange={(e) => setPort(e.target.value)}
-              className="bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-sm placeholder:text-neutral-500"
+              className="border rounded-lg px-3 py-2 text-sm"
+              style={inputStyle}
             />
             <input
               placeholder="Database name"
               value={database}
               onChange={(e) => setDatabase(e.target.value)}
-              className="col-span-2 bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-sm placeholder:text-neutral-500"
+              className="col-span-2 border rounded-lg px-3 py-2 text-sm"
+              style={inputStyle}
             />
             <input
               placeholder="Username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-sm placeholder:text-neutral-500"
+              className="border rounded-lg px-3 py-2 text-sm"
+              style={inputStyle}
             />
             <input
               placeholder="Password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-sm placeholder:text-neutral-500"
+              className="border rounded-lg px-3 py-2 text-sm"
+              style={inputStyle}
             />
           </div>
 
@@ -334,13 +376,14 @@ export default function ConnectPage() {
             placeholder="Name this connection to save it (optional)"
             value={connectionName}
             onChange={(e) => setConnectionName(e.target.value)}
-            className="w-full bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-sm placeholder:text-neutral-500 mb-4"
+            className="w-full border rounded-lg px-3 py-2 text-sm mb-4"
+            style={inputStyle}
           />
 
           <button
             onClick={handleConnect}
             disabled={state === "connecting"}
-            className="w-full rounded-lg bg-violet-500 hover:bg-violet-400 transition py-2.5 text-sm font-semibold disabled:opacity-50"
+            className="w-full rounded-lg bg-violet-500 hover:bg-violet-400 transition py-2.5 text-sm font-semibold disabled:opacity-50 text-white"
           >
             {state === "connecting" ? "Connecting..." : "Connect"}
           </button>
@@ -351,11 +394,16 @@ export default function ConnectPage() {
         <p
           className={`mt-5 text-sm ${
             state === "success"
-              ? "text-green-400"
+              ? "text-green-500"
               : state === "error"
-                ? "text-red-400"
-                : "text-neutral-400"
+                ? "text-red-500"
+                : ""
           }`}
+          style={
+            state === "idle" || state === "connecting"
+              ? { color: "var(--text-secondary)" }
+              : undefined
+          }
         >
           {message}
         </p>
