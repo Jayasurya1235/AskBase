@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import ThemeToggle from "../components/ThemeToggle";
 import {
   BarChart,
   Bar,
@@ -93,21 +94,29 @@ function MessageResult({
           <>
             <button
               onClick={() => setView("table")}
-              className={`text-xs px-2.5 py-1 rounded-md transition ${
-                view === "table"
-                  ? "bg-violet-500 text-white"
-                  : "bg-white/5 text-neutral-400"
-              }`}
+              className={`text-xs px-2.5 py-1 rounded-md transition ${view === "table" ? "bg-violet-500 text-white" : ""}`}
+              style={
+                view !== "table"
+                  ? {
+                      backgroundColor: "var(--bg-app)",
+                      color: "var(--text-secondary)",
+                    }
+                  : undefined
+              }
             >
               Table
             </button>
             <button
               onClick={() => setView("chart")}
-              className={`text-xs px-2.5 py-1 rounded-md transition ${
-                view === "chart"
-                  ? "bg-violet-500 text-white"
-                  : "bg-white/5 text-neutral-400"
-              }`}
+              className={`text-xs px-2.5 py-1 rounded-md transition ${view === "chart" ? "bg-violet-500 text-white" : ""}`}
+              style={
+                view !== "chart"
+                  ? {
+                      backgroundColor: "var(--bg-app)",
+                      color: "var(--text-secondary)",
+                    }
+                  : undefined
+              }
             >
               Chart
             </button>
@@ -115,13 +124,21 @@ function MessageResult({
         )}
         <button
           onClick={() => downloadExport("excel", question, columns, rows)}
-          className="text-xs px-2.5 py-1 rounded-md bg-white/5 text-neutral-400 hover:bg-white/10 transition"
+          className="text-xs px-2.5 py-1 rounded-md transition hover:opacity-80"
+          style={{
+            backgroundColor: "var(--bg-app)",
+            color: "var(--text-secondary)",
+          }}
         >
           ⬇ Excel
         </button>
         <button
           onClick={() => downloadExport("pdf", question, columns, rows)}
-          className="text-xs px-2.5 py-1 rounded-md bg-white/5 text-neutral-400 hover:bg-white/10 transition"
+          className="text-xs px-2.5 py-1 rounded-md transition hover:opacity-80"
+          style={{
+            backgroundColor: "var(--bg-app)",
+            color: "var(--text-secondary)",
+          }}
         >
           ⬇ PDF
         </button>
@@ -131,7 +148,13 @@ function MessageResult({
         <div className="overflow-x-auto">
           <table className="text-xs w-full border-collapse">
             <thead>
-              <tr className="text-left text-neutral-500 border-b border-white/10">
+              <tr
+                className="text-left border-b"
+                style={{
+                  borderColor: "var(--border-color)",
+                  color: "var(--text-secondary)",
+                }}
+              >
                 {columns.map((col) => (
                   <th key={col} className="pb-1.5 pr-4">
                     {col}
@@ -141,9 +164,13 @@ function MessageResult({
             </thead>
             <tbody>
               {rows.slice(0, 20).map((row, ri) => (
-                <tr key={ri} className="border-b border-white/5">
+                <tr
+                  key={ri}
+                  className="border-b"
+                  style={{ borderColor: "var(--border-color)" }}
+                >
                   {columns.map((col) => (
-                    <td key={col} className="py-1.5 pr-4 text-neutral-300">
+                    <td key={col} className="py-1.5 pr-4">
                       {String(row[col])}
                     </td>
                   ))}
@@ -253,9 +280,17 @@ export default function ChatPage() {
 
   if (connectionMissing) {
     return (
-      <main className="min-h-screen bg-[#0b0d10] text-white flex items-center justify-center px-6">
+      <main
+        className="min-h-screen flex items-center justify-center px-6"
+        style={{
+          backgroundColor: "var(--bg-app)",
+          color: "var(--text-primary)",
+        }}
+      >
         <div className="text-center">
-          <p className="text-neutral-300 mb-2">No active connection found.</p>
+          <p className="mb-2" style={{ color: "var(--text-secondary)" }}>
+            No active connection found.
+          </p>
           <a href="/" className="text-violet-400 hover:underline text-sm">
             Go connect a database first
           </a>
@@ -265,9 +300,16 @@ export default function ChatPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#0b0d10] text-white flex flex-col">
-      <header className="border-b border-white/10 px-6 py-4">
+    <main
+      className="min-h-screen flex flex-col"
+      style={{ backgroundColor: "var(--bg-app)", color: "var(--text-primary)" }}
+    >
+      <header
+        className="border-b px-6 py-4 flex items-center justify-between"
+        style={{ borderColor: "var(--border-color)" }}
+      >
         <span className="text-lg font-semibold">AskBase Chat</span>
+        <ThemeToggle />
       </header>
 
       <div className="flex-1 overflow-y-auto px-6 py-6 max-w-3xl w-full mx-auto">
@@ -289,14 +331,28 @@ export default function ChatPage() {
                   msg.role === "user"
                     ? "bg-violet-500 text-white"
                     : msg.error
-                      ? "bg-red-500/10 border border-red-500/30 text-red-300"
-                      : "bg-white/5 border border-white/10"
+                      ? "bg-red-500/10 border border-red-500/30 text-red-400"
+                      : "border"
                 }`}
+                style={
+                  msg.role !== "user" && !msg.error
+                    ? {
+                        backgroundColor: "var(--bg-surface)",
+                        borderColor: "var(--border-color)",
+                      }
+                    : undefined
+                }
               >
                 <p className="text-sm">{msg.content}</p>
 
                 {msg.sql && (
-                  <pre className="mt-3 text-xs bg-black/40 rounded-lg p-3 overflow-x-auto text-neutral-400">
+                  <pre
+                    className="mt-3 text-xs rounded-lg p-3 overflow-x-auto"
+                    style={{
+                      backgroundColor: "var(--bg-app)",
+                      color: "var(--text-secondary)",
+                    }}
+                  >
                     {msg.sql}
                   </pre>
                 )}
@@ -318,8 +374,19 @@ export default function ChatPage() {
 
           {loading && (
             <div className="flex justify-start">
-              <div className="rounded-2xl px-4 py-3 bg-white/5 border border-white/10">
-                <p className="text-sm text-neutral-400">Thinking...</p>
+              <div
+                className="rounded-2xl px-4 py-3 border"
+                style={{
+                  backgroundColor: "var(--bg-surface)",
+                  borderColor: "var(--border-color)",
+                }}
+              >
+                <p
+                  className="text-sm"
+                  style={{ color: "var(--text-secondary)" }}
+                >
+                  Thinking...
+                </p>
               </div>
             </div>
           )}
@@ -327,14 +394,22 @@ export default function ChatPage() {
         <div ref={bottomRef} />
       </div>
 
-      <div className="border-t border-white/10 p-4">
+      <div
+        className="border-t p-4"
+        style={{ borderColor: "var(--border-color)" }}
+      >
         <div className="max-w-3xl mx-auto flex gap-2">
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleAsk()}
             placeholder="Ask a question about your data..."
-            className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm placeholder:text-neutral-500"
+            className="flex-1 border rounded-xl px-4 py-3 text-sm"
+            style={{
+              backgroundColor: "var(--bg-surface)",
+              borderColor: "var(--border-color)",
+              color: "var(--text-primary)",
+            }}
           />
           <button
             onClick={handleAsk}

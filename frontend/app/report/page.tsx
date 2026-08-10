@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import ThemeToggle from "../components/ThemeToggle";
 import {
   BarChart,
   Bar,
@@ -35,6 +36,7 @@ type ReportData = {
   row_count: number;
   narrative: string;
 };
+
 async function downloadReportPdf(report: ReportData) {
   const res = await fetch(`${API_URL}/export/pdf`, {
     method: "POST",
@@ -59,6 +61,7 @@ async function downloadReportPdf(report: ReportData) {
   a.remove();
   window.URL.revokeObjectURL(url);
 }
+
 export default function ReportPage() {
   const [topic, setTopic] = useState("");
   const [loading, setLoading] = useState(false);
@@ -99,8 +102,6 @@ export default function ReportPage() {
     }
   }
 
-  // Group rows by the first (category) column for the bar chart —
-  // works well for "dimension + numeric measure" shaped reports.
   const chartReady =
     report && report.columns.length >= 2 && report.rows.length > 0;
 
@@ -120,10 +121,16 @@ export default function ReportPage() {
       : [];
 
   return (
-    <main className="min-h-screen bg-[#0b0d10] text-white px-6 py-10">
+    <main
+      className="min-h-screen px-6 py-10"
+      style={{ backgroundColor: "var(--bg-app)", color: "var(--text-primary)" }}
+    >
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold mb-1">Generate a Report</h1>
-        <p className="text-neutral-400 text-sm mb-6">
+        <div className="flex items-center justify-between mb-1">
+          <h1 className="text-2xl font-bold">Generate a Report</h1>
+          <ThemeToggle />
+        </div>
+        <p className="text-sm mb-6" style={{ color: "var(--text-secondary)" }}>
           Describe what you want to analyze — e.g. &quot;sales by product and
           region&quot; — and AskBase will build charts and a written summary
           from your data.
@@ -135,12 +142,17 @@ export default function ReportPage() {
             onChange={(e) => setTopic(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
             placeholder="e.g. revenue by genre and country"
-            className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm placeholder:text-neutral-500"
+            className="flex-1 border rounded-xl px-4 py-3 text-sm"
+            style={{
+              backgroundColor: "var(--bg-surface)",
+              borderColor: "var(--border-color)",
+              color: "var(--text-primary)",
+            }}
           />
           <button
             onClick={handleGenerate}
             disabled={loading}
-            className="bg-violet-500 hover:bg-violet-400 transition rounded-xl px-6 py-3 text-sm font-semibold disabled:opacity-50"
+            className="bg-violet-500 hover:bg-violet-400 transition rounded-xl px-6 py-3 text-sm font-semibold disabled:opacity-50 text-white"
           >
             {loading ? "Generating..." : "Generate"}
           </button>
@@ -153,7 +165,7 @@ export default function ReportPage() {
         )}
 
         {loading && (
-          <p className="text-neutral-500 text-sm">
+          <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
             Analyzing your data — this involves two AI calls and may take a
             moment...
           </p>
@@ -163,36 +175,53 @@ export default function ReportPage() {
           <div className="flex flex-col gap-8">
             <div>
               <h2 className="text-lg font-semibold mb-1">{report.topic}</h2>
-              <p className="text-neutral-500 text-xs mb-4">
+              <p
+                className="text-xs mb-4"
+                style={{ color: "var(--text-secondary)" }}
+              >
                 {report.row_count} rows · generated from live data
               </p>
-              <pre className="text-xs bg-black/40 rounded-lg p-3 overflow-x-auto text-neutral-400">
+              <pre
+                className="text-xs rounded-lg p-3 overflow-x-auto"
+                style={{
+                  backgroundColor: "var(--bg-surface)",
+                  color: "var(--text-secondary)",
+                }}
+              >
                 {report.generated_sql}
               </pre>
             </div>
 
             {barData.length > 0 && (
               <div className="grid md:grid-cols-2 gap-6">
-                <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
+                <div
+                  className="border rounded-2xl p-5"
+                  style={{
+                    backgroundColor: "var(--bg-surface)",
+                    borderColor: "var(--border-color)",
+                  }}
+                >
                   <p className="text-sm font-medium mb-3">Bar Chart</p>
                   <div style={{ width: "100%", height: 260 }}>
                     <ResponsiveContainer>
                       <BarChart data={barData}>
                         <CartesianGrid
                           strokeDasharray="3 3"
-                          stroke="#ffffff10"
+                          stroke="var(--border-color)"
                         />
                         <XAxis
                           dataKey="name"
-                          tick={{ fill: "#a3a3a3", fontSize: 10 }}
+                          tick={{ fill: "var(--text-secondary)", fontSize: 10 }}
                         />
-                        <YAxis tick={{ fill: "#a3a3a3", fontSize: 10 }} />
+                        <YAxis
+                          tick={{ fill: "var(--text-secondary)", fontSize: 10 }}
+                        />
                         <Tooltip
                           contentStyle={{
-                            background: "#14171c",
-                            border: "1px solid #ffffff20",
+                            background: "var(--bg-app)",
+                            border: "1px solid var(--border-color)",
                           }}
-                          labelStyle={{ color: "#fff" }}
+                          labelStyle={{ color: "var(--text-primary)" }}
                         />
                         <Bar
                           dataKey="value"
@@ -204,7 +233,13 @@ export default function ReportPage() {
                   </div>
                 </div>
 
-                <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
+                <div
+                  className="border rounded-2xl p-5"
+                  style={{
+                    backgroundColor: "var(--bg-surface)",
+                    borderColor: "var(--border-color)",
+                  }}
+                >
                   <p className="text-sm font-medium mb-3">Distribution</p>
                   <div style={{ width: "100%", height: 260 }}>
                     <ResponsiveContainer>
@@ -223,11 +258,16 @@ export default function ReportPage() {
                         </Pie>
                         <Tooltip
                           contentStyle={{
-                            background: "#14171c",
-                            border: "1px solid #ffffff20",
+                            background: "var(--bg-app)",
+                            border: "1px solid var(--border-color)",
                           }}
                         />
-                        <Legend wrapperStyle={{ fontSize: 11 }} />
+                        <Legend
+                          wrapperStyle={{
+                            fontSize: 11,
+                            color: "var(--text-secondary)",
+                          }}
+                        />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
@@ -235,17 +275,26 @@ export default function ReportPage() {
               </div>
             )}
 
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+            <div
+              className="border rounded-2xl p-6"
+              style={{
+                backgroundColor: "var(--bg-surface)",
+                borderColor: "var(--border-color)",
+              }}
+            >
               <div className="flex items-center justify-between mb-3">
                 <p className="text-sm font-medium">Analysis</p>
                 <button
                   onClick={() => downloadReportPdf(report)}
-                  className="text-xs px-3 py-1.5 rounded-md bg-violet-500 hover:bg-violet-400 transition"
+                  className="text-xs px-3 py-1.5 rounded-md bg-violet-500 hover:bg-violet-400 transition text-white"
                 >
                   ⬇ Download PDF
                 </button>
               </div>
-              <div className="text-sm text-neutral-300 whitespace-pre-line leading-relaxed">
+              <div
+                className="text-sm whitespace-pre-line leading-relaxed"
+                style={{ color: "var(--text-secondary)" }}
+              >
                 {report.narrative}
               </div>
             </div>
