@@ -1,6 +1,7 @@
 """
-Sets up OUR app's own database — a small SQLite file that stores things
-like saved connections, saved reports, and (later) user accounts.
+Sets up OUR app's own database — a small SQLite file (locally) or
+Postgres database (in production) that stores things like saved
+connections, saved reports, and (later) user accounts.
 
 This is completely separate from the databases users connect to for
 analysis (chinook, their MySQL/Postgres, etc). Think of it as
@@ -8,17 +9,25 @@ analysis (chinook, their MySQL/Postgres, etc). Think of it as
 allowed to read from."
 """
 
+import os
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-# A single file, askbase.db, created in the backend/ folder the first
-# time the app runs. No separate database server needed for this.
-DATABASE_URL = "sqlite:///./askbase.db"
+# Locally, falls back to a SQLite file, askbase.db, in the backend/ folder.
+# In production, DATABASE_URL is set to a real Postgres connection string.
+DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./askbase.db")
 
-engine = create_engine(
-    DATABASE_URL,
-    connect_args={"check_same_thread": False},  # required for SQLite + FastAPI
-)
+# Some hosts (Render, Heroku-style) hand out "postgres://" URLs, but
+# SQLAlchemy 2.0 requires "postgresql://". Fix it up if needed.
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+# SQLite needs this extra arg for FastAPI's threaded requests; Postgres
+# doesn't accept it at all, so only pass it when we're actually on SQLite.
+connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
+
+engine = create_engine(DATABASE_URL, connect_args=connect_args)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
