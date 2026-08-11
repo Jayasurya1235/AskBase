@@ -40,8 +40,11 @@ def _generate_report_sql(topic: str, schema: SchemaResponse) -> str:
         "tables and columns that exist in the schema."
     )
 
+    table_names = [t.name for t in schema.tables]
     user_prompt = (
-        f"Database name: {schema.database}\n\nSchema:\n{schema_text}\n\n"
+        f"Available tables (use ONLY these exact names, never invent a "
+        f"different table name): {table_names}\n\n"
+        f"Schema:\n{schema_text}\n\n"
         f"Report topic: {topic}\n\nSQL:"
     )
 

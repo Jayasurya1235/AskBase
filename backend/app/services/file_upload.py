@@ -37,11 +37,32 @@ def convert_file_to_sqlite(filename: str, file_bytes: bytes) -> str:
     else:
         raise ValueError(f"Unsupported file type: .{extension}")
 
-    # Clean column names: SQL doesn't like spaces or special characters
-    # in identifiers, so replace them with underscores.
-    df.columns = [
-        str(col).strip().replace(" ", "_").replace("-", "_") for col in df.columns
-    ]
+    import re
+
+    # Clean column names aggressively: keep only letters, digits, and
+    # underscores. Messy source files can contain title rows, em-dashes,
+    # or even stray control characters (e.g. from copy-pasted terminal
+    # output) — none of that is valid in a SQL identifier.
+    def clean_column_name(name: str) -> str:
+        name = str(name).strip()
+        name = re.sub(r"[^\w]+", "_", name)  # anything not letter/digit/underscore -> _
+        name = re.sub(r"_+", "_", name).strip("_")  # collapse repeats, trim edges
+        return name or "column"
+
+    df.columns = [clean_column_name(col) for col in df.columns]
+
+    # If the resulting names collide (common with messy "Unnamed" columns),
+    # make them unique by appending a number.
+    seen = {}
+    unique_columns = []
+    for col in df.columns:
+        if col in seen:
+            seen[col] += 1
+            unique_columns.append(f"{col}_{seen[col]}")
+        else:
+            seen[col] = 0
+            unique_columns.append(col)
+    df.columns = unique_columns
 
     db_filename = f"{UPLOAD_DIR}/{uuid.uuid4().hex}.db"
     engine = create_engine(f"sqlite:///{db_filename}")

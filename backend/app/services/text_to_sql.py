@@ -52,9 +52,12 @@ def generate_sql(question: str, schema: SchemaResponse) -> str:
         "exist in the schema provided."
     )
 
+    table_names = [t.name for t in schema.tables]
     user_prompt = (
-        f"Database name: {schema.database}\n\n"
-        f"Schema:\n{schema_text}\n\nQuestion: {question}\n\nSQL:"
+        f"Available tables (use ONLY these exact names, never invent a "
+        f"different table name): {table_names}\n\n"
+        f"Schema:\n{schema_text}\n\n"
+        f"Question: {question}\n\nSQL:"
     )
 
     response = client.chat.completions.create(
