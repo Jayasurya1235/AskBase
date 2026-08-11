@@ -10,6 +10,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api import saved_connections
 
 from app.core.config import settings
+from app.core.database import Base, engine
+from app.models.saved_connection import SavedConnection  # noqa: F401 (registers the table)
 from app.api import connections
 from app.api import query
 from app.api import export
@@ -21,6 +23,10 @@ app = FastAPI(
     description="Read-only AI database analysis and report generation API",
     version="0.1.0",
 )
+# Creates any tables that don't exist yet (like saved_connections) —
+# safe to run every startup, since it only creates missing tables and
+# never touches ones that already exist.
+Base.metadata.create_all(bind=engine)
 
 app.add_middleware(
     CORSMiddleware,
