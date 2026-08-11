@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import ThemeToggle from "./components/ThemeToggle";
 
@@ -19,6 +19,7 @@ type SavedConnection = {
 
 export default function ConnectPage() {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [sourceType, setSourceType] = useState<SourceType>("file");
   const [isDragging, setIsDragging] = useState(false);
@@ -144,6 +145,14 @@ export default function ConnectPage() {
     const file = e.dataTransfer.files[0];
     if (!file) return;
     await handleFileUpload(file);
+  }
+  function handleFileInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleFileUpload(file);
+    }
+    // Reset so selecting the same file again still triggers onChange
+    e.target.value = "";
   }
 
   async function handleFileUpload(file: File) {
@@ -300,7 +309,8 @@ export default function ConnectPage() {
           }}
           onDragLeave={() => setIsDragging(false)}
           onDrop={handleDrop}
-          className="w-full max-w-2xl rounded-3xl border-2 border-dashed px-8 py-14 text-center transition"
+          onClick={() => fileInputRef.current?.click()}
+          className="w-full max-w-2xl rounded-3xl border-2 border-dashed px-8 py-14 text-center transition cursor-pointer"
           style={{
             borderColor: isDragging ? "#a78bfa" : "var(--border-color)",
             backgroundColor: isDragging
@@ -308,9 +318,27 @@ export default function ConnectPage() {
               : "var(--bg-surface)",
           }}
         >
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,.xlsx,.xls"
+            onChange={handleFileInputChange}
+            className="hidden"
+          />
+
+          <div
+            className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-violet-500 hover:bg-violet-400 transition"
+            onClick={(e) => {
+              e.stopPropagation(); // avoid double-triggering with the parent's onClick
+              fileInputRef.current?.click();
+            }}
+          >
+            <span className="text-2xl leading-none text-white">+</span>
+          </div>
+
           <p className="text-lg font-medium mb-1">Drop your data file here</p>
           <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-            CSV, XLSX, JSON, SQL dump — or click to browse
+            CSV, XLSX — or click the + to browse
           </p>
         </div>
       ) : (
