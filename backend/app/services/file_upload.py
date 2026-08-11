@@ -17,6 +17,31 @@ from sqlalchemy import create_engine
 UPLOAD_DIR = "uploaded_dbs"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
+def _read_with_header_detection(buffer, read_func, max_rows_to_check: int = 5):
+    """
+    Some exported files (like this one) have a title row and/or blank
+    rows before the real column headers. Rather than assume row 0 is
+    always the header, scan the first few rows and use whichever one
+    looks most like a real header: multiple non-empty, non-duplicate
+    text values, and not just a single cell followed by blanks.
+    """
+    buffer.seek(0)
+    preview = read_func(buffer, header=None, nrows=max_rows_to_check)
+
+    best_row = 0
+    best_score = -1
+    for i in range(len(preview)):
+        row = preview.iloc[i]
+        non_null = row.notna().sum()
+        # A real header row: most cells filled in, not just one.
+        score = non_null
+        if score > best_score:
+            best_score = score
+            best_row = i
+
+    buffer.seek(0)
+    return read_func(buffer, header=best_row)
+
 
 def convert_file_to_sqlite(filename: str, file_bytes: bytes) -> str:
     """
@@ -31,9 +56,9 @@ def convert_file_to_sqlite(filename: str, file_bytes: bytes) -> str:
     buffer = io.BytesIO(file_bytes)
 
     if extension == "csv":
-        df = pd.read_csv(buffer)
+        df = _read_with_header_detection(buffer, pd.read_csv)
     elif extension in ("xlsx", "xls"):
-        df = pd.read_excel(buffer)
+        df = _read_with_header_detection(buffer, pd.read_excel)
     else:
         raise ValueError(f"Unsupported file type: .{extension}")
 

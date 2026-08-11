@@ -1,6 +1,8 @@
 """
-Routes for asking natural-language questions, generating and
-validating SQL, executing it, and returning real results.
+Routes for asking questions — either meta questions about the
+database's structure/capabilities (answered directly) or data
+questions (SQL generated, validated, executed, and summarized in
+plain English).
 """
 
 from fastapi import APIRouter, HTTPException
@@ -10,17 +12,29 @@ from app.services.schema_inspector import inspect_schema
 from app.services.text_to_sql import generate_sql
 from app.services.sql_validator import validate_sql, UnsafeSQLError
 from app.services.query_executor import execute_query
+from app.services.query_router import (
+    classify_intent,
+    answer_meta_question,
+    summarize_data_answer,
+)
 
 router = APIRouter(prefix="/query", tags=["query"])
 
 
 @router.post("/ask", response_model=AskQuestionResponse)
 def ask_question(request: AskQuestionRequest):
-    """
-    Full pipeline: question -> schema -> generated SQL -> validated
-    SQL -> executed against the database -> real results returned.
-    """
     schema = inspect_schema(request.connection)
+    intent = classify_intent(request.question, schema)
+
+    if intent == "meta":
+        answer = answer_meta_question(request.question, schema)
+        return AskQuestionResponse(
+            question=request.question,
+            answer=answer,
+            query_type="meta",
+        )
+
+    # intent == "data"
     raw_sql = generate_sql(request.question, schema)
 
     try:
@@ -34,13 +48,14 @@ def ask_question(request: AskQuestionRequest):
     try:
         columns, rows, row_count = execute_query(safe_sql, request.connection)
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Query execution failed: {e}",
-        )
+        raise HTTPException(status_code=500, detail=f"Query execution failed: {e}")
+
+    answer = summarize_data_answer(request.question, columns, rows)
 
     return AskQuestionResponse(
         question=request.question,
+        answer=answer,
+        query_type="data",
         generated_sql=safe_sql,
         columns=columns,
         rows=rows,

@@ -256,7 +256,7 @@ export default function ChatPage() {
           ...prev,
           {
             role: "assistant",
-            content: `Found ${data.row_count} result${data.row_count === 1 ? "" : "s"}.`,
+            content: data.answer,
             sql: data.generated_sql,
             columns: data.columns,
             rows: data.rows,
