@@ -193,16 +193,16 @@ export default function ReportPage() {
             </div>
 
             {barData.length > 0 && (
-              <div className="grid md:grid-cols-2 gap-6">
+              <div className="flex flex-col gap-6">
                 <div
-                  className="border rounded-2xl p-5"
+                  className="border rounded-2xl p-6"
                   style={{
                     backgroundColor: "var(--bg-surface)",
                     borderColor: "var(--border-color)",
                   }}
                 >
-                  <p className="text-sm font-medium mb-3">Bar Chart</p>
-                  <div style={{ width: "100%", height: 260 }}>
+                  <p className="text-base font-semibold mb-4">Bar Chart</p>
+                  <div style={{ width: "100%", height: 420 }}>
                     <ResponsiveContainer>
                       <BarChart data={barData}>
                         <CartesianGrid
@@ -234,14 +234,14 @@ export default function ReportPage() {
                 </div>
 
                 <div
-                  className="border rounded-2xl p-5"
+                  className="border rounded-2xl p-6"
                   style={{
                     backgroundColor: "var(--bg-surface)",
                     borderColor: "var(--border-color)",
                   }}
                 >
-                  <p className="text-sm font-medium mb-3">Distribution</p>
-                  <div style={{ width: "100%", height: 260 }}>
+                  <p className="text-base font-semibold mb-4">Distribution</p>
+                  <div style={{ width: "100%", height: 420 }}>
                     <ResponsiveContainer>
                       <PieChart>
                         <Pie
@@ -250,7 +250,8 @@ export default function ReportPage() {
                           nameKey="name"
                           cx="50%"
                           cy="50%"
-                          outerRadius={90}
+                          outerRadius={140}
+                          label
                         >
                           {barData.slice(0, 8).map((_, i) => (
                             <Cell key={i} fill={COLORS[i % COLORS.length]} />
