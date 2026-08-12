@@ -1,6 +1,6 @@
 """
 Routes for generating full analytical reports: multi-dimensional
-data + AI-written narrative analysis.
+data, per-group breakdown, and AI-written narrative analysis.
 """
 
 from fastapi import APIRouter, HTTPException
@@ -14,13 +14,8 @@ router = APIRouter(prefix="/report", tags=["report"])
 
 @router.post("/generate", response_model=ReportResponse)
 def generate_report_endpoint(request: ReportRequest):
-    """
-    Takes a report topic and connection details, generates a
-    two-dimensional breakdown query, validates and executes it, and
-    returns the data alongside an AI-written narrative analysis.
-    """
     try:
-        sql, columns, rows, row_count, narrative = generate_report(
+        sql, columns, rows, row_count, narrative, kpis, top_per_group, bottom_per_group = generate_report(
             request.topic, request.connection
         )
     except UnsafeSQLError as e:
@@ -38,4 +33,7 @@ def generate_report_endpoint(request: ReportRequest):
         rows=rows,
         row_count=row_count,
         narrative=narrative,
+        kpis=kpis,
+        top_per_group=top_per_group,
+        bottom_per_group=bottom_per_group,
     )

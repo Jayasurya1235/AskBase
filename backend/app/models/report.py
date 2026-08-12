@@ -1,17 +1,17 @@
 """
 Defines the shape of a report generation request and its response —
-a multi-dimensional data breakdown plus an AI-written narrative
-analysis, meant to be displayed as charts + readable text.
+a multi-dimensional data breakdown, per-group best/worst analysis,
+and an AI-written narrative, meant to be displayed as charts + text.
 """
 
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from pydantic import BaseModel
 
 from app.models.connection import DatabaseConnectionRequest
 
 
 class ReportRequest(BaseModel):
-    topic: str  # e.g. "sales by product and area"
+    topic: str
     connection: DatabaseConnectionRequest
 
 
@@ -22,3 +22,6 @@ class ReportResponse(BaseModel):
     rows: List[Dict[str, Any]]
     row_count: int
     narrative: str
+    kpis: Optional[Dict[str, Any]] = None
+    top_per_group: Optional[List[Dict[str, Any]]] = None
+    bottom_per_group: Optional[List[Dict[str, Any]]] = None
