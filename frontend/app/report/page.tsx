@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import ThemeToggle from "../components/ThemeToggle";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 import {
   BarChart,
   Bar,
@@ -37,32 +39,57 @@ type ReportData = {
   narrative: string;
 };
 
-async function downloadReportPdf(report: ReportData) {
-  const res = await fetch(`${API_URL}/export/pdf`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      question: report.topic,
-      columns: report.columns,
-      rows: report.rows,
-      narrative: report.narrative,
-    }),
+async function downloadFullReportPdf(
+  reportRef: React.RefObject<HTMLDivElement>,
+  topic: string,
+) {
+  if (!reportRef.current) return;
+
+  // Render the whole visible report section (charts included) to a
+  // high-resolution canvas image, then slice that image across as
+  // many PDF pages as needed.
+  const canvas = await html2canvas(reportRef.current, {
+    scale: 2, // sharper output than the raw screen resolution
+    backgroundColor:
+      getComputedStyle(document.documentElement).getPropertyValue("--bg-app") ||
+      "#ffffff",
+    useCORS: true,
   });
 
-  if (!res.ok) return;
+  const imgData = canvas.toDataURL("image/png");
+  const pdf = new jsPDF("p", "mm", "a4");
 
-  const blob = await res.blob();
-  const url = window.URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "askbase_report.pdf";
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  window.URL.revokeObjectURL(url);
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  const imgWidth = pageWidth;
+  const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+  let heightLeft = imgHeight;
+  let position = 0;
+
+  pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+  heightLeft -= pageHeight;
+
+  // If the content is taller than one page, keep adding pages,
+  // shifting the image up each time so the next slice shows.
+  while (heightLeft > 0) {
+    position = heightLeft - imgHeight;
+    pdf.addPage();
+    pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+    heightLeft -= pageHeight;
+  }
+
+  const safeName =
+    topic
+      .trim()
+      .replace(/[^\w\s-]/g, "")
+      .replace(/\s+/g, "_")
+      .slice(0, 50) || "report";
+  pdf.save(`askbase_${safeName}.pdf`);
 }
 
 export default function ReportPage() {
+  const reportRef = useRef<HTMLDivElement>(null);
   const [topic, setTopic] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -172,7 +199,7 @@ export default function ReportPage() {
         )}
 
         {report && (
-          <div className="flex flex-col gap-8">
+          <div ref={reportRef} className="flex flex-col gap-8 p-2">
             <div>
               <h2 className="text-lg font-semibold mb-1">{report.topic}</h2>
               <p
@@ -286,7 +313,7 @@ export default function ReportPage() {
               <div className="flex items-center justify-between mb-3">
                 <p className="text-sm font-medium">Analysis</p>
                 <button
-                  onClick={() => downloadReportPdf(report)}
+                  onClick={() => downloadFullReportPdf(reportRef, report.topic)}
                   className="text-xs px-3 py-1.5 rounded-md bg-violet-500 hover:bg-violet-400 transition text-white"
                 >
                   ⬇ Download PDF
