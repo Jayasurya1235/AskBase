@@ -13,3 +13,7 @@ frontend/.env.local
 *.log
 backend/askbase.db
 backend/uploaded_dbs/
+node_modules/
+.env
+uploads/
+dist/

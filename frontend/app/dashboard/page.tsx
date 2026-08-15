@@ -92,7 +92,7 @@ export default function Dashboard() {
           >
             Ask a question →
           </a>
-
+          
           <a
             href="/report"
             className="block mb-4 text-center border hover:opacity-80 transition rounded-lg py-2 text-sm font-semibold"
